@@ -16,9 +16,13 @@
 </style>
 <script src="js/three.min.js"></script>
 <script src="js/OrbitControls.js"></script>
+<script src="js/csg.js"></script>
+<script src="js/ThreeCSG.js"></script>
 
 <body>
 	<script>
+	(function () {
+		'use strict';
 		const WIDTH = window.innerWidth;
 		const HEIGHT = window.innerHeight;
 		let renderer = new THREE.WebGLRenderer({antialias: true});
@@ -28,9 +32,10 @@
 
 		let camera = new THREE.PerspectiveCamera(70, WIDTH/HEIGHT);
 		camera.position.z = 150;
-		camera.position.y = 55;
-		camera.position.x = 50;
-		camera.lookAt(50, 0, 0,);
+		camera.position.y = 300;
+		camera.position.x = 150;
+		camera.up = new THREE.Vector3(0, 1, 0);
+		camera.lookAt(new THREE.Vector3(150, 0, 150));
 		scene.add(camera);
 
 		let controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -55,41 +60,97 @@
 		scene.add(ambientLight);
 
 		const worldMap = [
-			[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-			[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-			[1,0,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,0,1],
-			[1,0,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,0,1],
-			[1,0,1,1,0,1,1,1,1,0,1,1,0,0,0,0,1,1,0,1,1,1,1,0,1,1,0,1],
-			[1,0,1,1,0,0,0,0,0,0,1,1,0,1,1,0,1,1,0,0,0,0,0,0,1,1,0,1],
-			[1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1],
-			[1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1],
-			[1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-			[1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1],
-			[ , ,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1, , ],
-			[ , ,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1, , ],
-			[1,1,1,0,1,1,0,1,1,0,1,1,1, , ,1,1,1,0,1,1,0,1,1,0,1,1,1],
-			[0,0,0,0,1,1,0,1,1,0,1, , , , , , ,1,0,1,1,0,1,1,0,0,0,0],
-			[1,1,1,1,1,1,0,0,0,0,1, , , , , , ,1,0,0,0,0,1,1,1,1,1,1],
-			[1,1,1,1,1,1,0,1,1,0,1, , , , , , ,1,0,1,1,0,1,1,1,1,1,1],
-			[0,0,0,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,0,0,0],
-			[1,1,1,0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,0,1,1,1],
-			[ , ,1,0,0,0,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,0,0,0,1, , ],
-			[ , ,1,0,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,0,1, , ],
-			[ , ,1,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,1, , ],
-			[ , ,1,0,1,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,1,0,1, , ],
-			[1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,1,0,1, , ],
-			[1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1],
-			[1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-			[1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-			[1,0,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1,0,1],
-			[1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1],
-			[1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1],
-			[1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
-			[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+			['e','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','f'],
+			['a',' ',' ','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','c'],
+			['a','-','i','j','-','i','d','d','j','-','i','d','d','d','d','d','d','j','-','i','d','d','j','-','i','j','-','c'],
+			['a','-','c','a','-','c',' ',' ','a','-','c','e','b','b','b','b','f','a','-','c',' ',' ','a','-','c','a','-','c'],
+			['a','-','c','a','-','l','b','b','k','-','c','a','-','-','-','-','c','a','-','l','b','b','k','-','c','a','-','c'],
+			['a','-','c','a','-','-','-','-','-','-','c','a','-','i','j','-','c','a','-','-','-','-','-','-','c','a','-','c'],
+			['a','-','c','h','d','j','-','i','j','-','c','a','-','c','a','-','c','a','-','i','j','-','i','d','g','a','-','c'],
+			['a','-','l','b','b','k','-','c','a','-','l','k','-','c','a','-','l','k','-','c','a','-','l','b','b','k','-','c'],
+			['a','-','-','-','-','-','-','c','a','-','-','-','-','c','a','-','-','-','-','c','a','-','-','-','-','-','-','c'],
+			['h','d','j','-','i','d','d','g','h','d','d','j','-','c','a','-','i','d','d','g','h','d','d','j','-','i','d','g'],
+			[' ',' ','a','-','l','b','b','f','e','b','b','k','-','l','k','-','l','b','b','f','e','b','b','k','-','c',' ',' '],
+			[' ',' ','a','-','-','-','-','c','a','-','-','-','-','-','-','-','-','-','-','c','a','-','-','-','-','c',' ',' '],
+			['b','b','k','-','i','j','-','c','a','-','i','d','d',' ',' ','d','d','j','-','c','a','-','i','j','-','l','b','b'],
+			['-','-','-','-','c','a','-','l','k','-','c',' ',' ',' ',' ',' ',' ','a','-','l','k','-','c','a','-','-','-','-'],
+			['d','d','d','d','g','a','-','-','-','-','c',' ',' ',' ',' ',' ',' ','a','-','-','-','-','c','h','d','d','d','d'],
+			['b','b','b','b','f','a','-','i','j','-','c',' ',' ',' ',' ',' ',' ','a','-','i','j','-','c','e','b','b','b','b'],
+			['-','-','-','-','c','a','-','c','a','-','l','b','b','b','b','b','b','k','-','c','a','-','c','a','-','-','-','-'],
+			['d','d','j','-','l','k','-','c','a','-','-','-','-','-','-','-','-','-','-','c','a','-','l','k','-','i','d','d'],
+			[' ',' ','a','-','-','-','-','c','h','d','d','j','-','i','j','-','i','d','d','g','a','-','-','-','-','c',' ',' '],
+			[' ',' ','a','-','i','j','-','l','b','b','b','k','-','c','a','-','l','b','b','b','k','-','i','j','-','c',' ',' '],
+			[' ',' ','a','-','c','a','-','-','-','-','-','-','-','c','a','-','-','-','-','-','-','-','c','a','-','c',' ',' '],
+			[' ',' ','a','-','c','h','d','d','j','-','i','j','-','c','a','-','i','j','-','i','d','d','g','a','-','c',' ',' '],
+			['e','b','k','-','l','b','b','b','k','-','c','a','-','l','k','-','c','a','-','l','b','b','b','k','-','l','b','f'],
+			['a','-','-','-','-','-','-','-','-','-','c','a','-','-','-','-','c','a','-','-','-','-','-','-','-','-','-','c'],
+			['a','-','i','d','d','j','-','i','j','-','c','h','d','d','d','d','g','a','-','i','j','-','i','d','d','j','-','c'],
+			['a','-','c','e','b','k','-','c','a','-','l','b','b','b','b','b','b','k','-','c','a','-','l','b','f','a','-','c'],
+			['a','-','c','a','-','-','-','c','a','-','-','-','-','-','-','-','-','-','-','c','a','-','-','-','c','a','-','c'],
+			['a','-','c','a','-','i','d','g','h','d','d','j','-','i','j','-','i','d','d','g','h','d','j','-','c','a','-','c'],
+			['a','-','l','k','-','l','b','b','b','b','b','k','-','c','a','-','l','b','b','b','b','b','k','-','l','k','-','c'],
+			['a','-','-','-','-','-','-','-','-','-','-','-','-','c','a','-','-','-','-','-','-','-','-','-','-','-','-','c'],
+			['h','d','d','d','d','d','d','d','d','d','d','d','d','g','h','d','d','d','d','d','d','d','d','d','d','d','d','g']
 		];
 
-		createCubesAndBalls();
+		let cubeLeftGeometry = new THREE.BoxGeometry(4, 10, 10);
+		let cubeLeft = new THREE.Mesh(cubeLeftGeometry, material);
 
+		let cubeTopGeometry = new THREE.BoxGeometry(10, 10, 4);
+		let cubeTop = new THREE.Mesh(cubeTopGeometry, material);
+
+		let cubeRightGeometry = new THREE.BoxGeometry(4, 10, 10);
+		let cubeRight = new THREE.Mesh(cubeRightGeometry, material);
+
+		let cubeBottomGeometry = new THREE.BoxGeometry(10, 10, 4);
+		let cubeBottom = new THREE.Mesh(cubeBottomGeometry, material);
+
+		let topLeftCornerGeometry = new THREE.Geometry();
+		cubeLeft.translateX(-3);
+		cubeLeft.translateZ(-3);
+		cubeLeft.updateMatrix();
+		cubeTop.translateZ(-6);
+		cubeTop.updateMatrix();
+		topLeftCornerGeometry.merge(cubeTop.geometry, cubeTop.matrix);
+		topLeftCornerGeometry.merge(cubeLeft.geometry, cubeLeft.matrix);
+		let topLeftCorner = new THREE.Mesh(topLeftCornerGeometry, material);
+
+		let topRightCornerGeometry = new THREE.Geometry();
+		cubeRight.translateZ(5);
+		cubeRight.translateX(8);
+		cubeRight.updateMatrix();
+		cubeTop.translateZ(8);
+		cubeTop.translateX(5);
+		cubeTop.updateMatrix();
+		topRightCornerGeometry.merge(cubeTop.geometry, cubeTop.matrix);
+		topRightCornerGeometry.merge(cubeRight.geometry, cubeRight.matrix);
+		let topRightCorner = new THREE.Mesh(topRightCornerGeometry, material);
+		
+
+		let bottomRightCornerGeometry = new THREE.Geometry();
+		cubeRight.updateMatrix();
+		cubeBottom.translateZ(8);
+		cubeBottom.translateX(5);
+		cubeBottom.updateMatrix();
+		bottomRightCornerGeometry.merge(cubeBottom.geometry, cubeBottom.matrix);
+		bottomRightCornerGeometry.merge(cubeRight.geometry, cubeRight.matrix);
+		let bottomRightCorner = new THREE.Mesh(bottomRightCornerGeometry, material);
+		
+
+		let bottomLeftCornerGeometry = new THREE.Geometry();
+		cubeLeft.translateZ(8);
+		cubeLeft.translateX(5);
+		cubeLeft.updateMatrix();
+		cubeBottom.updateMatrix();
+		bottomLeftCornerGeometry.merge(cubeBottom.geometry, cubeBottom.matrix);
+		bottomLeftCornerGeometry.merge(cubeLeft.geometry, cubeLeft.matrix);
+		let bottomLeftCorner = new THREE.Mesh(bottomLeftCornerGeometry, material);
+
+		let smallCubeGeometry = new THREE.BoxGeometry(4,10,4);
+		let smallCube = new THREE.Mesh(smallCubeGeometry, material);
+
+		createCubesAndBalls();
+		drawLines();
 		render();
 
 		function render() {
@@ -110,22 +171,86 @@
 			let sphereMaterial = new THREE.MeshLambertMaterial({color: 0xFFFFFF});
 			let ball = new THREE.Mesh(sphere, sphereMaterial);
 			let balls = [];
-			for (let i = 0; i < worldMap.length; ++i) {
-				for (let j = 0; j < worldMap[0].length; ++j) {
-					if (worldMap[i][j] === 1) {
-						let copy = cube.clone();
+			for (let j = 0; j < worldMap.length; ++j) {
+				for (let i = 0; i < worldMap[0].length; ++i) {
+					let copy;
+					if (worldMap[j][i] === 'a') {
+						copy = cubeLeft.clone();
+						copy.position.set(i*size + 2, 0, j*size + 5);
+						cubes.push(copy);
+					} else if ((worldMap[j][i]) === 'b') {
+						copy = cubeTop.clone();
+						copy.position.set(i*size + 5, 0, j*size + 2);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'c') {
+						copy = cubeRight.clone();
+						copy.position.set(i*size + 8, 0, j*size + 5);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'd') {
+						copy = cubeBottom.clone();
+						copy.position.set(i*size + 5, 0, j*size + 8);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'e') {
+						copy = topLeftCorner.clone();
+						copy.position.set(i*size + 5, 0, j*size + 8);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'f') {
+						copy = topRightCorner.clone();
 						copy.position.set(i*size, 0, j*size);
 						cubes.push(copy);
+					} else if (worldMap[j][i] === 'g') {
+						copy = bottomRightCorner.clone();
+						copy.position.set(i*size, 0, j*size);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'h') {
+						copy = bottomLeftCorner.clone();
+						copy.position.set(i*size, 0, j*size);
 						scene.add(copy);
-					} else if (worldMap[i][j] === 0) {
-						let copy = ball.clone();
+					} else if (worldMap[j][i] === 'i') {
+						copy = smallCube.clone();
+						copy.position.set(i*size + 8, 0, j*size + 8);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'j') {
+						copy = smallCube.clone();
+						copy.position.set(i*size + 2, 0, j*size + 8);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'k') {
+						copy = smallCube.clone();
+						copy.position.set(i*size + 2, 0,  j*size + 2);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'l') {
+						copy = smallCube.clone();
+						copy.position.set(i*size + 8, 0, j*size + 2);
+						cubes.push(copy);
+					} else if (worldMap[j][i] === 'x') {
+						copy = ball.clone();
 						copy.position.set(i*size + size*0.5 - 3, 0, j*size + size*0.5 - 3);
-						balls.push(copy);
 						scene.add(copy);
 					}
 				}
 			}
+			cubes.forEach( cube => {
+				//if (cube.position.z > 150) {
+					scene.add(cube);
+				//}
+			})
 		}
+		function drawLines() {
+			let space = 10;
+			for (let i = 0; i < 32; i++) {
+				let geometryX = new THREE.Geometry();
+				let geometryZ = new THREE.Geometry();
+				geometryX.vertices.push(new THREE.Vector3(i*space,0,0), new THREE.Vector3(i*space,0,320));
+				geometryZ.vertices.push(new THREE.Vector3(0,0,i*space), new THREE.Vector3(320,0,i*space));
+				let materialX = new THREE.LineBasicMaterial({color: 0xFF0000});
+				let materialZ = new THREE.LineBasicMaterial({color: 0x00FF00});
+				let lineX = new THREE.Line(geometryX, materialX);
+				let lineZ = new THREE.Line(geometryZ, materialZ);
+				scene.add(lineX);
+				scene.add(lineZ);
+			}
+		}
+	})();
 	</script>
 	
 </body>
