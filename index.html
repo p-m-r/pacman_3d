@@ -9,36 +9,59 @@
 		margin: 0;
 		padding: 0;
 	}
-	canvas {
+	#main-canvas {
 		width: 100%;
 		height: 100%;
+		position: absolute;
+	}
+	#top-canvas {
+		position: relative;
+		top: 0;
+		left: 0;
 	}
 </style>
 <script src="js/three.min.js"></script>
 <script src="js/OrbitControls.js"></script>
+<script src="js/PointerLockControls.js"></script>
 <script src="js/csg.js"></script>
 <script src="js/ThreeCSG.js"></script>
 
 <body>
 	<script>
-	(function () {
 		'use strict';
+		let alpha = 0;
 		const WIDTH = window.innerWidth;
 		const HEIGHT = window.innerHeight;
 		let renderer = new THREE.WebGLRenderer({antialias: true});
 		let scene = new THREE.Scene();
 		renderer.setSize(WIDTH, HEIGHT);
 		document.body.appendChild(renderer.domElement);
+		renderer.domElement.id = "main-canvas";
+
 
 		let camera = new THREE.PerspectiveCamera(70, WIDTH/HEIGHT);
-		camera.position.z = 150;
-		camera.position.y = 300;
-		camera.position.x = 150;
+		camera.position.z = 15;
+		camera.position.y = 6;
+		camera.position.x = 15;
 		camera.up = new THREE.Vector3(0, 1, 0);
-		camera.lookAt(new THREE.Vector3(150, 0, 150));
+		let cameraVector = new THREE.Vector3(150, 6, 150);
+		camera.lookAt(cameraVector);
 		scene.add(camera);
 
-		let controls = new THREE.OrbitControls(camera, renderer.domElement);
+		let rendererTop = new THREE.WebGLRenderer({antialias: true});
+		rendererTop.setSize(200,200);
+		document.body.appendChild(rendererTop.domElement);
+		rendererTop.domElement.id = "top-canvas";
+		let cameraTop = new THREE.PerspectiveCamera(70, 1);
+		cameraTop.position.z = 150;
+		cameraTop.position.y = 300;
+		cameraTop.position.x = 150;
+		cameraTop.up = new THREE.Vector3(0, 1, 0);
+		cameraTop.lookAt(new THREE.Vector3(150, 0, 150));
+		scene.add(cameraTop);
+
+
+		//let controls = new THREE.OrbitControls(camera, renderer.domElement);
 
 		let box = new THREE.BoxGeometry(10, 10, 10);
 		let material = new THREE.MeshLambertMaterial({color: 0x0095DD});
@@ -149,9 +172,38 @@
 		let smallCubeGeometry = new THREE.BoxGeometry(4,10,4);
 		let smallCube = new THREE.Mesh(smallCubeGeometry, material);
 
+
+		let moveForward = false;
+		let moveBackward = false;
+		let moveLeft = false;
+		let moveRight = false;
+		let mouseX;
+
+		let velocity = new THREE.Vector3();
+		let direction = new THREE.Vector3();
+
+		velocity.y = 0;
+
+		let prevTime = performance.now();
+
+		//let controls = new THREE.PointerLockControls(camera, renderer.domElement);
+
+		//scene.add(controls.getObject());
+		//controls.lock();
+
+		//document.addEventListener('mousemove', onMouseMove, false);
+		document.addEventListener('keydown', onKeyDown, false);
+		document.addEventListener('keyup', onKeyUp, false);
+
+		let raycaster = new THREE.Raycaster();
+
+		let cubes = [];
+		let balls = [];
 		createCubesAndBalls();
+
 		drawLines();
 		render();
+		checkIfCollision();
 
 		function render() {
 			requestAnimationFrame(render);
@@ -159,6 +211,8 @@
 			rotY += 0.005;
 			cube.rotation.set(rotX, rotY, rotZ);
 			renderer.render(scene, camera);
+			rendererTop.render(scene, cameraTop);
+			animate();
 		}
 		
 		function createCubesAndBalls() {
@@ -166,11 +220,9 @@
 			let box = new THREE.BoxGeometry(size, size, size);
 			let material = new THREE.MeshLambertMaterial({color: 0x0095DD});
 			let cube = new THREE.Mesh(box, material);
-			let cubes = [];
 			let sphere = new THREE.SphereGeometry(2, 5, 5);
 			let sphereMaterial = new THREE.MeshLambertMaterial({color: 0xFFFFFF});
 			let ball = new THREE.Mesh(sphere, sphereMaterial);
-			let balls = [];
 			for (let j = 0; j < worldMap.length; ++j) {
 				for (let i = 0; i < worldMap[0].length; ++i) {
 					let copy;
@@ -235,6 +287,7 @@
 				//}
 			})
 		}
+
 		function drawLines() {
 			let space = 10;
 			for (let i = 0; i < 32; i++) {
@@ -250,7 +303,132 @@
 				scene.add(lineZ);
 			}
 		}
-	})();
+
+		function onKeyDown(event) {
+			switch ( event.keyCode ) {
+				case 38: // up
+				case 87: // w
+					moveForward = true;
+					break;
+				case 37: // left
+				case 65: // a
+					moveLeft = true;
+					break;
+				case 40: // down
+				case 83: // s
+					moveBackward = true;
+					break;
+				case 39: // right
+				case 68: // d
+					moveRight = true;
+					break;
+				case 32: // space
+					if ( canJump === true ) velocity.y += 350;
+					canJump = false;
+					break;
+			}
+		}
+
+		function onKeyUp(event) {
+			switch ( event.keyCode ) {
+				case 38: // up
+				case 87: // w
+					moveForward = false;
+					break;
+				case 37: // left
+				case 65: // a
+					moveLeft = false;
+					break;
+				case 40: // down
+				case 83: // s
+					moveBackward = false;
+					break;
+				case 39: // right
+				case 68: // d
+					moveRight = false;
+					break;
+			}
+		}
+		/*function onMouseMove(event) {
+			cameraVector.x -= event.movementX;
+			//cameraVector.y -= event.movementY;
+			camera.lookAt(cameraVector);
+		}*/
+		function animate() {
+			/*let time = performance.now();
+			let delta = (time - prevTime)/1000;
+			//console.log(delta);
+			velocity.x -= velocity.x * 10.0 * delta;
+			velocity.z -= velocity.z * 10.0 * delta;
+
+			direction.z = Number(moveForward) - Number(moveBackward);
+			direction.x = Number(moveLeft) - Number(moveRight);
+
+			if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+			if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+*/			if (moveLeft || moveRight) {
+				updateAlpha();
+				updateDirection();
+			}
+			
+			//if (moveForward)
+				updateVelocity();
+			//if (!checkIfCollision()) {
+				camera.position.x += velocity.x*2;
+				camera.position.z += velocity.z*2;
+			//}
+
+			
+			//camera.lookAt(cameraVector);
+
+			//controls.getObject().translateX(velocity.x * delta);
+			//controls.getObject().translateZ(velocity.z * delta);
+			//camera.position.x += velocity.x * delta;
+			//camera.position.z += velocity.z * delta;
+			//prevTime = time;
+			//console.log(`x: ${direction.z} y: ${direction.y} z: ${direction.x}`);
+			//direction.z = 1;
+			//direction.x = 1;
+		}
+		function updateAlpha() {
+			if (moveRight)
+				alpha += 0.07;
+			if (moveLeft)
+				alpha -= 0.07;
+		}
+		function updateDirection() {
+			cameraVector.x = 500*Math.cos(alpha);
+			cameraVector.z = 500*Math.sin(alpha);
+			camera.lookAt(cameraVector);
+			checkIfCollision();
+		}
+		function updateVelocity() {
+			if (moveForward) {
+				velocity.x = cameraVector.x - camera.position.x;
+				velocity.z = cameraVector.z - camera.position.z;
+				velocity.normalize();
+			} else {
+				velocity.x = 0;
+				velocity.z = 0;
+			}
+		}
+		function checkIfCollision() {
+			let origin = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
+			//console.log(origin);
+			//console.log(cameraVector);
+			let direction = new THREE.Vector3(cameraVector.x - origin.x, cameraVector.y - origin.y, cameraVector.z - origin.z);
+			direction.normalize();
+			console.log(direction);
+			raycaster.set(origin, direction);
+			//raycaster.near = 1;
+			//raycaster.far = 100;
+			//console.log(scene.children);
+			//console.log(raycaster.ray)
+			console.log(cubes);
+			let intersects = raycaster.intersectObjects(cubes);
+			console.log(intersects);
+			return intersects.length;
+		}
 	</script>
 	
 </body>
