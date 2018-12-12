@@ -29,7 +29,6 @@
 <body>
 	<script>
 		'use strict';
-		let alpha = 0;
 		const WIDTH = window.innerWidth;
 		const HEIGHT = window.innerHeight;
 		let renderer = new THREE.WebGLRenderer({antialias: true});
@@ -44,9 +43,13 @@
 		camera.position.y = 6;
 		camera.position.x = 15;
 		camera.up = new THREE.Vector3(0, 1, 0);
-		let cameraVector = new THREE.Vector3(150, 6, 150);
+		let cameraVector = new THREE.Vector3();
+		cameraVector.y = 6;
+		let alpha = 0;
+		updateDirection();
 		camera.lookAt(cameraVector);
 		scene.add(camera);
+		let tr = {x1: 0, y1: 0, x2: 31, y2: 28, x0: 28, y0: 0};
 
 		let rendererTop = new THREE.WebGLRenderer({antialias: true});
 		rendererTop.setSize(200,200);
@@ -114,7 +117,17 @@
 			['a','-','l','k','-','l','b','b','b','b','b','k','-','c','a','-','l','b','b','b','b','b','k','-','l','k','-','c'],
 			['a','-','-','-','-','-','-','-','-','-','-','-','-','c','a','-','-','-','-','-','-','-','-','-','-','-','-','c'],
 			['h','d','d','d','d','d','d','d','d','d','d','d','d','g','h','d','d','d','d','d','d','d','d','d','d','d','d','g']
-		];
+		]; //31 x 28
+
+		const gameMap = [];
+
+		const visibilityMap = [];
+		for (let i = 0; i < 31; ++i) {
+			visibilityMap.push([]);
+			for (let j = 0; j < 28; ++j) {
+				visibilityMap[i].push(false);
+			}
+		}
 
 		let cubeLeftGeometry = new THREE.BoxGeometry(4, 10, 10);
 		let cubeLeft = new THREE.Mesh(cubeLeftGeometry, material);
@@ -179,40 +192,48 @@
 		let moveRight = false;
 		let mouseX;
 
+
 		let velocity = new THREE.Vector3();
 		let direction = new THREE.Vector3();
-
+		let time = Date.now();
 		velocity.y = 0;
 
 		let prevTime = performance.now();
 
-		//let controls = new THREE.PointerLockControls(camera, renderer.domElement);
-
-		//scene.add(controls.getObject());
-		//controls.lock();
-
-		//document.addEventListener('mousemove', onMouseMove, false);
 		document.addEventListener('keydown', onKeyDown, false);
 		document.addEventListener('keyup', onKeyUp, false);
 
 		let raycaster = new THREE.Raycaster();
+		let mouse = new THREE.Vector2(0, -0.34);
+		raycaster.near = 0;
+		raycaster.far = 8;
 
 		let cubes = [];
 		let balls = [];
+		let ballsLeft = 0;
 		createCubesAndBalls();
+		//scene.fog = new THREE.FogExp2(0x5dca31, 0.018);
 
-		drawLines();
+		const mapTree = {};
+		let map = generateMapTree();
+
+		let playerLocation = new THREE.Vector2();
+		let surroundingObjects = [];
+		setPlayerLocation();
+
+		updateVisibilityMap();
+		//drawLines();
 		render();
-		checkIfCollision();
 
 		function render() {
-			requestAnimationFrame(render);
+			setTimeout(() => requestAnimationFrame(render), 10);
 			rotX += 0.015;
 			rotY += 0.005;
 			cube.rotation.set(rotX, rotY, rotZ);
 			renderer.render(scene, camera);
 			rendererTop.render(scene, cameraTop);
 			animate();
+			updateVisibilityMap();
 		}
 		
 		function createCubesAndBalls() {
@@ -224,6 +245,7 @@
 			let sphereMaterial = new THREE.MeshLambertMaterial({color: 0xFFFFFF});
 			let ball = new THREE.Mesh(sphere, sphereMaterial);
 			for (let j = 0; j < worldMap.length; ++j) {
+				gameMap[j] = [];
 				for (let i = 0; i < worldMap[0].length; ++i) {
 					let copy;
 					if (worldMap[j][i] === 'a') {
@@ -274,17 +296,18 @@
 						copy = smallCube.clone();
 						copy.position.set(i*size + 8, 0, j*size + 2);
 						cubes.push(copy);
-					} else if (worldMap[j][i] === 'x') {
+					} else if (worldMap[j][i] === '-') {
 						copy = ball.clone();
-						copy.position.set(i*size + size*0.5 - 3, 0, j*size + size*0.5 - 3);
+						copy.name = 'ball';
+						copy.position.set(i*size + size*0.5, 0, j*size + size*0.5);
 						scene.add(copy);
+						ballsLeft++;
 					}
+					gameMap[j][i] = copy;
 				}
 			}
 			cubes.forEach( cube => {
-				//if (cube.position.z > 150) {
 					scene.add(cube);
-				//}
 			})
 		}
 
@@ -322,11 +345,7 @@
 				case 68: // d
 					moveRight = true;
 					break;
-				case 32: // space
-					if ( canJump === true ) velocity.y += 350;
-					canJump = false;
-					break;
-			}
+				}
 		}
 
 		function onKeyUp(event) {
@@ -349,46 +368,29 @@
 					break;
 			}
 		}
-		/*function onMouseMove(event) {
-			cameraVector.x -= event.movementX;
-			//cameraVector.y -= event.movementY;
-			camera.lookAt(cameraVector);
-		}*/
 		function animate() {
-			/*let time = performance.now();
-			let delta = (time - prevTime)/1000;
-			//console.log(delta);
-			velocity.x -= velocity.x * 10.0 * delta;
-			velocity.z -= velocity.z * 10.0 * delta;
-
-			direction.z = Number(moveForward) - Number(moveBackward);
-			direction.x = Number(moveLeft) - Number(moveRight);
-
-			if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-			if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-*/			if (moveLeft || moveRight) {
-				updateAlpha();
+			let currTime = Date.now();
+			let timeElapsed = currTime - time;
+			time = currTime;
+			let distance = (timeElapsed % 100) / 20;
+			if (moveLeft || moveRight) {
+				let angle = distance/20;
+				if (moveRight)
+					alpha += angle;
+				if (moveLeft)
+					alpha -= angle;
 				updateDirection();
 			}
 			
-			//if (moveForward)
 				updateVelocity();
-			//if (!checkIfCollision()) {
-				camera.position.x += velocity.x*2;
-				camera.position.z += velocity.z*2;
-			//}
-
-			
-			//camera.lookAt(cameraVector);
-
-			//controls.getObject().translateX(velocity.x * delta);
-			//controls.getObject().translateZ(velocity.z * delta);
-			//camera.position.x += velocity.x * delta;
-			//camera.position.z += velocity.z * delta;
-			//prevTime = time;
-			//console.log(`x: ${direction.z} y: ${direction.y} z: ${direction.x}`);
-			//direction.z = 1;
-			//direction.x = 1;
+			let intersectedObjects = checkIfCollision();
+			if (intersectedObjects.length === 0) {
+				camera.position.x += velocity.x*distance;
+				camera.position.z += velocity.z*distance;
+				checkIfOutOfMap();
+				setPlayerLocation();
+			}
+			getFirstVisibilityTriangleVertex();
 		}
 		function updateAlpha() {
 			if (moveRight)
@@ -400,7 +402,6 @@
 			cameraVector.x = 500*Math.cos(alpha);
 			cameraVector.z = 500*Math.sin(alpha);
 			camera.lookAt(cameraVector);
-			checkIfCollision();
 		}
 		function updateVelocity() {
 			if (moveForward) {
@@ -414,21 +415,162 @@
 		}
 		function checkIfCollision() {
 			let origin = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
-			//console.log(origin);
-			//console.log(cameraVector);
 			let direction = new THREE.Vector3(cameraVector.x - origin.x, cameraVector.y - origin.y, cameraVector.z - origin.z);
 			direction.normalize();
-			console.log(direction);
-			raycaster.set(origin, direction);
-			//raycaster.near = 1;
-			//raycaster.far = 100;
-			//console.log(scene.children);
-			//console.log(raycaster.ray)
-			console.log(cubes);
-			let intersects = raycaster.intersectObjects(cubes);
-			console.log(intersects);
-			return intersects.length;
+			raycaster.setFromCamera(mouse, camera);
+			let intersects = raycaster.intersectObjects(surroundingObjects);
+			raycaster.setFromCamera(new THREE.Vector2(-0.25,-0.34), camera);
+			intersects.concat(raycaster.intersectObjects(scene.children));
+			raycaster.setFromCamera(new THREE.Vector2(0.25,-0.34), camera);
+			intersects.concat(raycaster.intersectObjects(scene.children));
+			return intersects;
 		}
+		function checkIfOutOfMap() {
+			let mapX = worldMap[0].length*10;
+			if (camera.position.x < 0) {
+				camera.position.x += mapX;
+				cameraVector.x += mapX;
+			} else if (camera.position.x > mapX) {
+				camera.position.x -= mapX;
+				cameraVector.x -= mapX;
+			}
+		}
+		function setPlayerLocation() {
+			let newPlayerLocation = new THREE.Vector2();
+			newPlayerLocation.x = Math.floor(camera.position.x / 10);
+			newPlayerLocation.y = Math.floor(camera.position.z / 10);
+			if (playerLocation.x !== newPlayerLocation.x || playerLocation.y !== newPlayerLocation.y) {
+				playerLocation = newPlayerLocation;
+				let objects = getSurroundingObjects();
+				let newMaterial = new THREE.MeshLambertMaterial({color: 0x00FF00});
+				//surroundingObjects.forEach( object => object.material = material);
+				//objects.forEach( object => object.material = newMaterial);
+				surroundingObjects = objects;
+			}
+		}
+		function getSurroundingObjects() {
+			let objects = [];
+			let object = gameMap[playerLocation.y][playerLocation.x];
+			if (object && object.name === 'ball') {
+				scene.remove(object);
+				delete gameMap[playerLocation.y][playerLocation.x];
+				ballsLeft--;
+			}
+			for (let i = playerLocation.x - 1; i <= playerLocation.x + 1; ++i) {
+				for (let j = playerLocation.y - 1; j <= playerLocation.y + 1; ++j) {
+					if ( i >= 0 && i < gameMap[0].length && j >= 0 && j < gameMap.length) {
+						let object = gameMap[j][i];
+						if (object !== undefined) {
+							objects.push(object);
+						}
+					}
+				}
+			}
+			return objects;
+		}
+		function generateMapTree() {
+			let map = [];
+			let width = Math.ceil(gameMap.length / 4);
+			let height = Math.ceil(gameMap[0].length / 4);
+			for (let i = 0; i < width; ++i) {
+				let row = [];
+				for (let j = 0; j < height; ++j) {
+					let partition = { size: 4, elements: [], leaf: true };
+					row.push(Object.create(partition));
+				}
+				map.push(row);
+			}
+			for (let i = 0; i < gameMap.length; i += 4) {
+				for (let j = 0; j < gameMap[0].length; j += 4) {
+						map[i/4][j/4].topLeft = {x: i, y: j};
+					for (let k = i; k < i + 4 && k < gameMap.length; ++k) {
+						for (let l = j; l < j + 4 && l < gameMap[0].length; ++l) {
+							map[i/4][j/4].elements.push(gameMap[k][l]);
+						}
+					}
+				}
+			}
+			let map2 = [];
+			for (let i = 0; i < map.length; i += 2) {
+				let row = [];
+				for (let j = 0; j < map[0].length; j += 2) {
+					let elem = {size: 2, children: []};
+					elem.topLeft = {x: map[i][j].topLeft.x, y: map[i][j].topLeft.y};
+					for (let k = i; k < i + 2 && k < map.length; ++k) {
+						for (let l = j; l < j + 2 && l < map[0].length; ++l) {
+							elem.children.push(map[k][l]);
+						}
+					}
+					row.push(elem);
+				}
+				map2.push(row);
+			}
+			let map3 = [];
+			for (let i = 0; i < map2.length; i += 2) {
+				let row = [];
+				for (let j = 0; j < map2[0].length; j += 2) {
+					let elem = {size: 2, children: []};
+					elem.topLeft = {x: map2[i][j].topLeft.x, y: map2[i][j].topLeft.y};
+					for (let k = i; k < i + 2 && k < map2.length; ++k) {
+						for (let l = j; l < j + 2 && l < map2[0].length; ++l) {
+							elem.children.push(map2[k][l]);
+						}
+					}
+					row.push(elem);
+				}
+				map3.push(row);
+			}
+			return [map,map2,map3];
+		}
+		function updateVisibilityMap() {
+			let p1 = {x: playerLocation.x - 4, y: playerLocation.y - 4};
+			let p2 = {x: playerLocation.x + 12*Math.cos(alpha - 0.67), y: playerLocation.y + 12*Math.sin(alpha - 0.67)};
+			let p3 = {x: playerLocation.x + 12*Math.cos(alpha + 0.67), y: playerLocation.y + 12*Math.sin(alpha + 0.67)};
+			visibilityMap.forEach((row, i) => {
+				row.forEach((elem, j) => {
+					visibilityMap[j][i] = pointInTriangle({x: i, y: j}, p1, p2, p3);
+				})
+			})
+			for (let i = 0; i < gameMap.length; ++i) {
+				for (let j = 0; j < gameMap[0].length; ++j) {
+					if (gameMap[i][j])
+						gameMap[i][j].visible = visibilityMap[i][j];
+				}
+			}
+		}
+		function sign (p1, p2, p3) {
+		    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+		}
+		function pointInTriangle (pt, v1 = {x: 0, y: 0}, v2 = {x: 31, y: 28}, v3 = {x: 0, y: 28}) {
+		    let d1, d2, d3;
+		    let has_neg, has_pos;
+
+		    d1 = sign(pt, v1, v2);
+		    d2 = sign(pt, v2, v3);
+		    d3 = sign(pt, v3, v1);
+
+		    has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+		    has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+		    return !(has_neg && has_pos);
+		}
+		function getFirstVisibilityTriangleVertex() {
+			let x = camera.position.x*2 - cameraVector.x/10;
+			let z = camera.position.z*2 - cameraVector.z/10;
+			console.log(`x: ${x} z: ${z}`);
+			//let vect = new THREE.Vector3(,6,);
+		}
+		function color(obj) {
+			let mat = new THREE.MeshLambertMaterial({color: 0xFF0000});
+			obj.elements.forEach(el => {if (el) el.material = mat});
+		}
+		function colorMap2(obj) {
+			obj.children.forEach( child => color(child));
+		}
+		function colorMap3(obj) {
+			obj.children.forEach( child => colorMap2(child));
+		}
+
 	</script>
 	
 </body>
