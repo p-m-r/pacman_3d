@@ -22,13 +22,11 @@
 </style>
 <script src="js/three.min.js"></script>
 <script src="js/OrbitControls.js"></script>
-<script src="js/PointerLockControls.js"></script>
-<script src="js/csg.js"></script>
-<script src="js/ThreeCSG.js"></script>
 
 <body>
 	<script>
 		'use strict';
+		let gameOver = false;
 		const WIDTH = window.innerWidth;
 		const HEIGHT = window.innerHeight;
 		let renderer = new THREE.WebGLRenderer({antialias: true});
@@ -69,14 +67,14 @@
 		let box = new THREE.BoxGeometry(10, 10, 10);
 		let material = new THREE.MeshLambertMaterial({color: 0x0095DD});
 
-		let cube = new THREE.Mesh(box, material);
-		cube.translateX(-40);
-		cube.translateY(35);
-		scene.add(cube);
+		// let cube = new THREE.Mesh(box, material);
+		// cube.translateX(-40);
+		// cube.translateY(35);
+		// scene.add(cube);
 
-		let rotX = 0.0;
-		let rotY = 0.0;
-		let rotZ = 0.0;
+		// let rotX = 0.0;
+		// let rotY = 0.0;
+		// let rotZ = 0.0;
 
 		let light = new THREE.DirectionalLight(0xFFFFFF);
 		light.position.set(10, 10, 5);
@@ -99,10 +97,10 @@
 			[' ',' ','a','-','l','b','b','f','e','b','b','k','-','l','k','-','l','b','b','f','e','b','b','k','-','c',' ',' '],
 			[' ',' ','a','-','-','-','-','c','a','-','-','-','-','-','-','-','-','-','-','c','a','-','-','-','-','c',' ',' '],
 			['b','b','k','-','i','j','-','c','a','-','i','d','d',' ',' ','d','d','j','-','c','a','-','i','j','-','l','b','b'],
-			['-','-','-','-','c','a','-','l','k','-','c',' ',' ',' ',' ',' ',' ','a','-','l','k','-','c','a','-','-','-','-'],
+			['0','-','-','-','c','a','-','l','k','-','c',' ',' ',' ',' ',' ',' ','a','-','l','k','-','c','a','-','-','-','0'],
 			['d','d','d','d','g','a','-','-','-','-','c',' ',' ',' ',' ',' ',' ','a','-','-','-','-','c','h','d','d','d','d'],
 			['b','b','b','b','f','a','-','i','j','-','c',' ',' ',' ',' ',' ',' ','a','-','i','j','-','c','e','b','b','b','b'],
-			['-','-','-','-','c','a','-','c','a','-','l','b','b','b','b','b','b','k','-','c','a','-','c','a','-','-','-','-'],
+			['0','-','-','-','c','a','-','c','a','-','l','b','b','b','b','b','b','k','-','c','a','-','c','a','-','-','-','0'],
 			['d','d','j','-','l','k','-','c','a','-','-','-','-','-','-','-','-','-','-','c','a','-','l','k','-','i','d','d'],
 			[' ',' ','a','-','-','-','-','c','h','d','d','j','-','i','j','-','i','d','d','g','a','-','-','-','-','c',' ',' '],
 			[' ',' ','a','-','i','j','-','l','b','b','b','k','-','c','a','-','l','b','b','b','k','-','i','j','-','c',' ',' '],
@@ -121,13 +119,13 @@
 
 		const gameMap = [];
 
-		const visibilityMap = [];
-		for (let i = 0; i < 31; ++i) {
-			visibilityMap.push([]);
-			for (let j = 0; j < 28; ++j) {
-				visibilityMap[i].push(false);
-			}
-		}
+		// const visibilityMap = [];
+		// for (let i = 0; i < 31; ++i) {
+		// 	visibilityMap.push([]);
+		// 	for (let j = 0; j < 28; ++j) {
+		// 		visibilityMap[i].push(false);
+		// 	}
+		// }
 
 		let cubeLeftGeometry = new THREE.BoxGeometry(4, 10, 10);
 		let cubeLeft = new THREE.Mesh(cubeLeftGeometry, material);
@@ -185,6 +183,46 @@
 		let smallCubeGeometry = new THREE.BoxGeometry(4,10,4);
 		let smallCube = new THREE.Mesh(smallCubeGeometry, material);
 
+		let ghostGeometry = new THREE.SphereGeometry(4.5,5,5);
+		let ghostMaterial = new THREE.MeshLambertMaterial({color: 0x00FF00});
+		let ghostMesh = new THREE.Mesh(ghostGeometry, ghostMaterial);
+		let ghostProto = {quotientX: 0, quotientZ: 1, mesh: undefined};
+
+
+		let ghost = Object.create(ghostProto);
+		ghost.mesh = ghostMesh.clone();
+		scene.add(ghost.mesh);
+		ghost.mesh.position.set(65,0,15);
+		ghost.quotientZ = 1;
+		ghost.quotientX = 0;
+
+		let ghost1 = Object.create(ghostProto);
+		ghost1.mesh = ghostMesh.clone();
+		scene.add(ghost1.mesh);
+		ghost1.mesh.position.set(265,0,295);
+		ghost1.quotientZ = 1;
+		ghost1.quotientX = 0;
+
+		let ghost2 = Object.create(ghostProto);
+		ghost2.mesh = ghostMesh.clone();
+		scene.add(ghost2.mesh);
+		ghost2.mesh.position.set(105,0,165);
+		ghost2.quotientZ = 1;
+		ghost2.quotientX = 0;
+
+		let ghost3 = Object.create(ghostProto);
+		ghost3.mesh = ghostMesh.clone();
+		scene.add(ghost3.mesh);
+		ghost3.mesh.position.set(165,0,105);
+		ghost3.quotientZ = 1;
+		ghost3.quotientX = 0;
+		let ghosts = [ghost, ghost1, ghost2, ghost3];
+
+		let playerGeometry = new THREE.SphereGeometry(4.5,5,5);
+		let playerMaterial = new THREE.MeshLambertMaterial({color: 0xFF0000});
+		let player = new THREE.Mesh(playerGeometry, playerMaterial);
+		scene.add(player);
+
 
 		let moveForward = false;
 		let moveBackward = false;
@@ -196,6 +234,7 @@
 		let velocity = new THREE.Vector3();
 		let direction = new THREE.Vector3();
 		let time = Date.now();
+		let ghostTime = Date.now();
 		velocity.y = 0;
 
 		let prevTime = performance.now();
@@ -214,26 +253,31 @@
 		createCubesAndBalls();
 		//scene.fog = new THREE.FogExp2(0x5dca31, 0.018);
 
-		const mapTree = {};
-		let map = generateMapTree();
+		//const mapTree = {};
+		//let map = generateMapTree();
 
 		let playerLocation = new THREE.Vector2();
 		let surroundingObjects = [];
 		setPlayerLocation();
 
-		updateVisibilityMap();
+		//updateVisibilityMap();
 		//drawLines();
 		render();
 
 		function render() {
-			setTimeout(() => requestAnimationFrame(render), 10);
-			rotX += 0.015;
-			rotY += 0.005;
-			cube.rotation.set(rotX, rotY, rotZ);
+			if (!gameOver) {
+				setTimeout(() => requestAnimationFrame(render), 10);
+			} else {
+				window.alert('Game over!');
+			}
+			// rotX += 0.015;
+			// rotY += 0.005;
+			// cube.rotation.set(rotX, rotY, rotZ);
 			renderer.render(scene, camera);
 			rendererTop.render(scene, cameraTop);
 			animate();
-			updateVisibilityMap();
+			moveGhosts(ghosts);
+			//updateVisibilityMap();
 		}
 		
 		function createCubesAndBalls() {
@@ -387,10 +431,12 @@
 			if (intersectedObjects.length === 0) {
 				camera.position.x += velocity.x*distance;
 				camera.position.z += velocity.z*distance;
+				player.position.x = camera.position.x;
+				player.position.z = camera.position.z;
 				checkIfOutOfMap();
 				setPlayerLocation();
 			}
-			getFirstVisibilityTriangleVertex();
+			//getFirstVisibilityTriangleVertex();
 		}
 		function updateAlpha() {
 			if (moveRight)
@@ -455,6 +501,9 @@
 				scene.remove(object);
 				delete gameMap[playerLocation.y][playerLocation.x];
 				ballsLeft--;
+				if (ballsLeft < 1) {
+					gameOver = true;
+				}
 			}
 			for (let i = playerLocation.x - 1; i <= playerLocation.x + 1; ++i) {
 				for (let j = playerLocation.y - 1; j <= playerLocation.y + 1; ++j) {
@@ -468,98 +517,77 @@
 			}
 			return objects;
 		}
-		function generateMapTree() {
-			let map = [];
-			let width = Math.ceil(gameMap.length / 4);
-			let height = Math.ceil(gameMap[0].length / 4);
-			for (let i = 0; i < width; ++i) {
-				let row = [];
-				for (let j = 0; j < height; ++j) {
-					let partition = { size: 4, elements: [], leaf: true };
-					row.push(Object.create(partition));
-				}
-				map.push(row);
-			}
-			for (let i = 0; i < gameMap.length; i += 4) {
-				for (let j = 0; j < gameMap[0].length; j += 4) {
-						map[i/4][j/4].topLeft = {x: i, y: j};
-					for (let k = i; k < i + 4 && k < gameMap.length; ++k) {
-						for (let l = j; l < j + 4 && l < gameMap[0].length; ++l) {
-							map[i/4][j/4].elements.push(gameMap[k][l]);
-						}
-					}
-				}
-			}
-			let map2 = [];
-			for (let i = 0; i < map.length; i += 2) {
-				let row = [];
-				for (let j = 0; j < map[0].length; j += 2) {
-					let elem = {size: 2, children: []};
-					elem.topLeft = {x: map[i][j].topLeft.x, y: map[i][j].topLeft.y};
-					for (let k = i; k < i + 2 && k < map.length; ++k) {
-						for (let l = j; l < j + 2 && l < map[0].length; ++l) {
-							elem.children.push(map[k][l]);
-						}
-					}
-					row.push(elem);
-				}
-				map2.push(row);
-			}
-			let map3 = [];
-			for (let i = 0; i < map2.length; i += 2) {
-				let row = [];
-				for (let j = 0; j < map2[0].length; j += 2) {
-					let elem = {size: 2, children: []};
-					elem.topLeft = {x: map2[i][j].topLeft.x, y: map2[i][j].topLeft.y};
-					for (let k = i; k < i + 2 && k < map2.length; ++k) {
-						for (let l = j; l < j + 2 && l < map2[0].length; ++l) {
-							elem.children.push(map2[k][l]);
-						}
-					}
-					row.push(elem);
-				}
-				map3.push(row);
-			}
-			return [map,map2,map3];
-		}
-		function updateVisibilityMap() {
-			let p1 = {x: playerLocation.x - 4, y: playerLocation.y - 4};
-			let p2 = {x: playerLocation.x + 12*Math.cos(alpha - 0.67), y: playerLocation.y + 12*Math.sin(alpha - 0.67)};
-			let p3 = {x: playerLocation.x + 12*Math.cos(alpha + 0.67), y: playerLocation.y + 12*Math.sin(alpha + 0.67)};
-			visibilityMap.forEach((row, i) => {
-				row.forEach((elem, j) => {
-					visibilityMap[j][i] = pointInTriangle({x: i, y: j}, p1, p2, p3);
-				})
-			})
-			for (let i = 0; i < gameMap.length; ++i) {
-				for (let j = 0; j < gameMap[0].length; ++j) {
-					if (gameMap[i][j])
-						gameMap[i][j].visible = visibilityMap[i][j];
-				}
-			}
-		}
-		function sign (p1, p2, p3) {
-		    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-		}
-		function pointInTriangle (pt, v1 = {x: 0, y: 0}, v2 = {x: 31, y: 28}, v3 = {x: 0, y: 28}) {
-		    let d1, d2, d3;
-		    let has_neg, has_pos;
-
-		    d1 = sign(pt, v1, v2);
-		    d2 = sign(pt, v2, v3);
-		    d3 = sign(pt, v3, v1);
-
-		    has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-		    has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-
-		    return !(has_neg && has_pos);
-		}
-		function getFirstVisibilityTriangleVertex() {
-			let x = camera.position.x*2 - cameraVector.x/10;
-			let z = camera.position.z*2 - cameraVector.z/10;
-			console.log(`x: ${x} z: ${z}`);
-			//let vect = new THREE.Vector3(,6,);
-		}
+		// function generateMapTree() {
+		// 	let map = [];
+		// 	let width = Math.ceil(gameMap.length / 4);
+		// 	let height = Math.ceil(gameMap[0].length / 4);
+		// 	for (let i = 0; i < width; ++i) {
+		// 		let row = [];
+		// 		for (let j = 0; j < height; ++j) {
+		// 			let partition = { size: 4, elements: [], leaf: true };
+		// 			row.push(Object.create(partition));
+		// 		}
+		// 		map.push(row);
+		// 	}
+		// 	for (let i = 0; i < gameMap.length; i += 4) {
+		// 		for (let j = 0; j < gameMap[0].length; j += 4) {
+		// 				map[i/4][j/4].topLeft = {x: i, y: j};
+		// 			for (let k = i; k < i + 4 && k < gameMap.length; ++k) {
+		// 				for (let l = j; l < j + 4 && l < gameMap[0].length; ++l) {
+		// 					map[i/4][j/4].elements.push(gameMap[k][l]);
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// 	let map2 = [];
+		// 	for (let i = 0; i < map.length; i += 2) {
+		// 		let row = [];
+		// 		for (let j = 0; j < map[0].length; j += 2) {
+		// 			let elem = {size: 2, children: []};
+		// 			elem.topLeft = {x: map[i][j].topLeft.x, y: map[i][j].topLeft.y};
+		// 			for (let k = i; k < i + 2 && k < map.length; ++k) {
+		// 				for (let l = j; l < j + 2 && l < map[0].length; ++l) {
+		// 					elem.children.push(map[k][l]);
+		// 				}
+		// 			}
+		// 			row.push(elem);
+		// 		}
+		// 		map2.push(row);
+		// 	}
+		// 	let map3 = [];
+		// 	for (let i = 0; i < map2.length; i += 2) {
+		// 		let row = [];
+		// 		for (let j = 0; j < map2[0].length; j += 2) {
+		// 			let elem = {size: 2, children: []};
+		// 			elem.topLeft = {x: map2[i][j].topLeft.x, y: map2[i][j].topLeft.y};
+		// 			for (let k = i; k < i + 2 && k < map2.length; ++k) {
+		// 				for (let l = j; l < j + 2 && l < map2[0].length; ++l) {
+		// 					elem.children.push(map2[k][l]);
+		// 				}
+		// 			}
+		// 			row.push(elem);
+		// 		}
+		// 		map3.push(row);
+		// 	}
+		// 	return [map,map2,map3];
+		// }
+		// function updateVisibilityMap() {
+		// 	let p1 = {x: playerLocation.x - 4, y: playerLocation.y - 4};
+		// 	let p2 = {x: playerLocation.x + 12*Math.cos(alpha - 0.67), y: playerLocation.y + 12*Math.sin(alpha - 0.67)};
+		// 	let p3 = {x: playerLocation.x + 12*Math.cos(alpha + 0.67), y: playerLocation.y + 12*Math.sin(alpha + 0.67)};
+		// 	visibilityMap.forEach((row, i) => {
+		// 		row.forEach((elem, j) => {
+		// 			visibilityMap[j][i] = pointInTriangle({x: i, y: j}, p1, p2, p3);
+		// 		})
+		// 	})
+		// 	for (let i = 0; i < gameMap.length; ++i) {
+		// 		for (let j = 0; j < gameMap[0].length; ++j) {
+		// 			if (gameMap[i][j])
+		// 				gameMap[i][j].visible = visibilityMap[i][j];
+		// 		}
+		// 	}
+		// }
+		
 		function color(obj) {
 			let mat = new THREE.MeshLambertMaterial({color: 0xFF0000});
 			obj.elements.forEach(el => {if (el) el.material = mat});
@@ -570,7 +598,56 @@
 		function colorMap3(obj) {
 			obj.children.forEach( child => colorMap2(child));
 		}
-
+		function moveGhosts(ghosts) {
+			let speed = 0.7;
+			for (let ghost of ghosts) {
+				// console.log(`x: ${ghost.mesh.position.x} z: ${ghost.mesh.position.z}`);
+				let nextLocX = ghost.mesh.position.x + ghost.quotientX*speed;
+				let nextLocZ = ghost.mesh.position.z + ghost.quotientZ*speed;
+				//console.log(`x: ${nextLocX} z: ${nextLocZ}`);
+				let nextMapX = Math.floor(nextLocX / 10);
+				let nextMapZ = Math.floor(nextLocZ / 10);
+				//console.log(`x: ${nextMapX} z: ${nextMapZ}`);
+				let mapX = Math.floor(ghost.mesh.position.x / 10);
+				let mapZ = Math.floor(ghost.mesh.position.z / 10);
+				if (worldMap[nextMapZ][nextMapX] !== ' ' && worldMap[nextMapZ][nextMapX] !== '-') {
+					let rand;
+					for (;;) {
+						rand = Math.random()*4;
+						if (rand < 1 && (worldMap[mapZ + 1][mapX] === ' ' || worldMap[mapZ + 1][mapX] === '-')) {
+							ghost.quotientX = 0;
+							ghost.quotientZ = 1;
+							break;
+						} else if (rand < 2 && (worldMap[mapZ - 1][mapX] === ' ' || worldMap[mapZ - 1][mapX] === '-')) {
+							ghost.quotientX = 0;
+							ghost.quotientZ = -1;
+							break;
+						} else if (rand < 3 && (worldMap[mapZ][mapX + 1] === ' ' || worldMap[mapZ][mapX + 1] === '-')) {
+							ghost.quotientX = 1;
+							ghost.quotientZ = 0;
+							break;
+						} else if (rand < 4 && (worldMap[mapZ][mapX - 1] === ' ' || worldMap[mapZ][mapX - 1] === '-')) {
+							ghost.quotientX = -1;
+							ghost.quotientZ = 0;
+							break;
+						}
+					}
+				}
+				if (ghost.quotientX !== 0) {
+					ghost.mesh.position.z = mapZ*10 + 5;
+				} else {
+					ghost.mesh.position.x = mapX*10 + 5;
+				}
+				nextLocX = ghost.mesh.position.x + ghost.quotientX*speed;
+				nextLocZ = ghost.mesh.position.z + ghost.quotientZ*speed;
+				ghost.mesh.position.x = nextLocX;
+				ghost.mesh.position.z = nextLocZ;
+				//console.log(`x: ${playerLocation.x} z: ${playerLocation.y}, x: ${mapX} z: ${mapZ}`);
+				if (playerLocation.y === mapZ && playerLocation.x == mapX) {
+					gameOver = true;
+				}
+			}
+		}
 	</script>
 	
 </body>
